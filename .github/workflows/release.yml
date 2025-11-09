@@ -72,11 +72,18 @@ jobs:
           # Create annotated tag on current commit
           git tag -a ${{ steps.version.outputs.version }} -m "Release ${{ steps.version.outputs.version }}"
 
+          # Verify tag exists and points to HEAD (this is what GoReleaser checks)
+          echo "Verifying tag exists and points to HEAD:"
+          git tag --points-at HEAD
+          
+          # Also verify with the command GoReleaser uses (if Git supports --sort)
+          echo "All tags:"
+          git tag -l
+          echo "Tags pointing at HEAD (with --sort if supported):"
+          git tag --points-at HEAD --sort -version:refname 2>&1 || git tag --points-at HEAD
+
           # Push tag to remote
           git push origin ${{ steps.version.outputs.version }}
-
-          # Fetch tags so GoReleaser can see them
-          git fetch --tags
 
           echo "Tag ${{ steps.version.outputs.version }} created and pushed"
 
@@ -84,6 +91,26 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: "1.25"
+
+      - name: Check Git version
+        run: |
+          GIT_VERSION=$(git --version | awk '{print $3}')
+          echo "Current Git version: $GIT_VERSION"
+          # GoReleaser requires Git 2.0+ for --sort option in git tag command
+          GIT_MAJOR=$(echo $GIT_VERSION | cut -d. -f1)
+          if [ "$GIT_MAJOR" -lt 2 ]; then
+            echo "ERROR: Git version $GIT_VERSION is too old. GoReleaser requires Git 2.0+"
+            echo "GoReleaser uses 'git tag --sort' which requires Git 2.0+"
+            exit 1
+          fi
+          echo "✓ Git version $GIT_VERSION is sufficient (requires 2.0+)"
+          
+          # Test the exact command GoReleaser uses
+          echo "Testing GoReleaser's git tag command:"
+          git tag --points-at HEAD --sort -version:refname 2>&1 || {
+            echo "ERROR: Git tag --sort command failed. This will cause GoReleaser to fail."
+            exit 1
+          }
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
