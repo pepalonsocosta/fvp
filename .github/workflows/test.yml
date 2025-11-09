@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+
+      - name: Verify Go installation
+        run: |
+          go version
+          go env
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binaries
+        run: |
+          go build -o fvps ./cmd/server
+          go build -o fvpc ./cmd/client
+
+      - name: Verify binaries exist
+        run: |
+          test -f fvps || exit 1
+          test -f fvpc || exit 1
+          echo "✓ Binaries built successfully"
+
+      - name: Run all tests (excluding TUN tests)
+        run: |
+          # Run all tests - E2E TUN tests will be skipped automatically (require root)
+          go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+          echo "✓ All tests completed"

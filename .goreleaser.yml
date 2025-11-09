@@ -1,0 +1,62 @@
+# GoReleaser configuration for FVP
+# https://goreleaser.com/
+
+version: 2
+
+git:
+  tag_sort: smartsemver
+
+builds:
+  - id: fvps
+    binary: fvps
+    goos: [linux]
+    goarch: [amd64, arm64]
+    main: ./cmd/server
+    ldflags:
+      - -X main.version={{.Version}}
+      - -X main.buildTime={{.Date}}
+      - -X main.gitCommit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+
+  - id: fvpc
+    binary: fvpc
+    goos: [linux]
+    goarch: [amd64, arm64]
+    main: ./cmd/client
+    ldflags:
+      - -X main.version={{.Version}}
+      - -X main.buildTime={{.Date}}
+      - -X main.gitCommit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: server-archive
+    ids:
+      - fvps
+    formats:
+      - tar.gz
+    name_template: "fvp-server-{{ .Os }}-{{ .Arch }}"
+
+  - id: client-archive
+    ids:
+      - fvpc
+    formats:
+      - tar.gz
+    name_template: "fvp-client-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+release:
+  github:
+    owner: pepalonsocosta
+    name: fvp
+  draft: false
+  prerelease: false
+
+changelog:
+  use: github
+  sort: asc

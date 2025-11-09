@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version
+        id: version
+        run: |
+          # Get bump type from workflow dispatch input
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+          echo "Manual release triggered with bump_type: $BUMP_TYPE"
+
+          # Calculate new version based on latest tag
+          # Use || true to handle exit code 128 when no tags exist
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags exist - first release is always v1.0.0
+            VERSION="1.0.0"
+            echo "First release detected - using v$VERSION"
+          else
+            # Tags exist - bump from latest
+            if [ "$BUMP_TYPE" = "minor" ]; then
+              VERSION=$(echo $LATEST_TAG | sed 's/v//' | awk -F. '{print $1"."($2+1)".0"}')
+            elif [ "$BUMP_TYPE" = "major" ]; then
+              VERSION=$(echo $LATEST_TAG | sed 's/v//' | awk -F. '{print ($1+1)".0.0"}')
+            else
+              VERSION=$(echo $LATEST_TAG | sed 's/v//' | awk -F. '{print $1"."$2"."($3+1)}')
+            fi
+          fi
+
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "Generated version: v$VERSION"
+          echo "Version number: $VERSION"
+          echo "Bump type: $BUMP_TYPE"
+
+      - name: Create and push tag
+        run: |
+          echo "Creating tag: ${{ steps.version.outputs.version }}"
+
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Create annotated tag on current commit
+          git tag -a ${{ steps.version.outputs.version }} -m "Release ${{ steps.version.outputs.version }}"
+
+          # Push tag to remote
+          git push origin ${{ steps.version.outputs.version }}
+
+          # Fetch tags so GoReleaser can see them
+          git fetch --tags
+
+          echo "Tag ${{ steps.version.outputs.version }} created and pushed"
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
