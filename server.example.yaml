@@ -1,0 +1,17 @@
+# Fast VPN Server Configuration
+# This file contains client keys for authentication and encryption
+
+clients:
+  # Client 1 - Example key (replace with your own 32-byte key)
+  - id: 1
+    key: "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+
+  # Client 2 - Example key (replace with your own 32-byte key)
+  - id: 2
+    key: "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
+
+  # Client 3 - Example key (replace with your own 32-byte key)
+  - id: 3
+    key: "1111111111111111111111111111111111111111111111111111111111111111"
+# Note: Each key must be exactly 64 hex characters (32 bytes)
+# Generate secure keys using: openssl rand -hex 32
