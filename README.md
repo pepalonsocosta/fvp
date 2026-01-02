@@ -13,16 +13,23 @@ Download pre-built binaries from the [Releases](https://github.com/pepalonsocost
 - **Server**: `fvp-server-linux-amd64.tar.gz` or `fvp-server-linux-arm64.tar.gz`
 - **Client**: `fvp-client-linux-amd64.tar.gz` or `fvp-client-linux-arm64.tar.gz`
 
-Extract and place the binary in your `PATH`, or run directly:
+### Server Installation
 
 ```bash
-# Linux
+wget https://github.com/pepalonsocosta/fvp/releases/latest/download/fvp-server-linux-amd64.tar.gz
 tar -xzf fvp-server-linux-amd64.tar.gz
-sudo mv fvps /usr/local/bin/
-
-tar -xzf fvp-client-linux-amd64.tar.gz
-sudo mv fvpc /usr/local/bin/
+sudo mv fvps-linux-amd64 /usr/local/bin/fvps
 ```
+
+### Client Installation
+
+```bash
+wget https://github.com/pepalonsocosta/fvp/releases/latest/download/fvp-client-linux-amd64.tar.gz
+tar -xzf fvp-client-linux-amd64.tar.gz
+sudo mv fvpc-linux-amd64 /usr/local/bin/fvpc
+```
+
+For ARM64 systems, replace `amd64` with `arm64` in the commands above.
 
 ## Quick Start
 
